@@ -9,30 +9,272 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(rentrez)
-
+#install.packages("RFLPtools")
+library(RFLPtools)
+library(tidysq)
+library(ape)
+library(Biostrings)
+library(stringi)
+library(BiocManager)
+library(DECIPHER)
 ```
 
 ## Introduction
 
-The viral genomes that 
+Viral pathogens can change rapidly through a process called drift. Through this process, conserved regions of the genome accumulate mutation and substitutions. Antigenic drift refers to the lead to changes in the surface proteins, “antigens”, of the virus (Ryt-Hansen et al. 2020). Additionally, this drift-propensity can depend on the sequences within a region, the gene or the organisms involved. This propensity for drift makes diagnostics and vaccination a challenge. Additionally, there is the challenge of the detection these viral from different specimen. Given that the virus is consistently changing, the diagnostic tools are unable detect these viruses after significant drift. 
 
 ## Viral (Respiratory) genomes 
 
-**Influenza A**
+Viral genomes are obtained from NCBI and loaded into R using rentrez functions
 
-**Influenza B**
 
-**SARs-COV**
+```{bash}
+# combine all individual fasta files (located in their own directories) into a single fasta file.
+for i in GC*; do cat $i/* >> fastas; done
+```
 
-**Respiratory syncytial virus (RSV)**
+Possible PCA plots using sim/dist matrix
+
+```{r}
+list_names$`Assembly Accession`[1]
+sea <- entrez_search(db="genome", term = "GCA_000848685.1[AACC]")
+entrez_fetch(db="genome", id = sea$ids, rettype = "fasta")
+
+covid_fastas <- readBStringSet("/Users/sairaasif49/Downloads/fastas")
+cluster_all <- read_tsv("/Users/sairaasif49/Downloads/VIRIDIC_cluster_table.tsv")
+term
+
+sim_26_dist <- read_tsv("/Users/sairaasif49/Downloads/VIRIDIC_sim-dist_table (3).tsv")
+
+values_fun <- cmdscale(as.matrix(sim_26_dist[-1]),eig=T,5)
+
+## Extract the eigen vectors
+eigenvec <- cbind(sim_26_dist$genome,values_fun$points)
+autoplot(values_fun)
+autoplot(cmdscale(as.matrix(sim_26_dist[-1]), eig = TRUE), label = TRUE, label.size = 3)
+
+
+sim2dist(as.matrix(sim_26[-1]), maxSim = 1)
+## Proportion of variation captured by each eigen vector
+eigen_percent <- round(((values_fun$eig)/sum(values_fun$eig))*100,2)
+
+
+# PCA plot
+#ggplot(data = eigenvec) +
+ #geom_point(mapping = aes(x = `1`, y = `2`), show.legend = FALSE ) + 
+ #geom_hline(yintercept = 0, linetype="dotted") + 
+ #geom_vline(xintercept = 0, linetype="dotted") +
+ #labs(title = "PCA of Coronovidie",
+  #  x = paste0("Principal component 1 (",eigen_percent[1]," %)"),
+   # y = paste0("Principal component 2 (",eigen_percent[2]," %)")) + 
+# theme_minimal()
+
+
+```
+
+
+
+
+```{r}
+# vector of search terms for the ~26 genus of SubFamily Orthocoronavirinae
+term= c("txid2569586[organism:exp] AND biomol_genomic[prop] NOT RefSeq","txid694015[organism:exp] AND biomol_genomic[prop] AND complete genome NOT RefSeq", "txid300188[organism:exp] AND biomol_genomic[prop] AND 27000:28000[SLEN] NOT RefSeq", "txid1159908[organism:exp] AND biomol_genomic[prop] NOT RefSeq", "txid572288[organism:exp] AND biomol_genomic[prop] NOT RefSeq", "txid1159902[organism:exp] AND biomol_genomic[prop] NOT RefSeq", "txid1159905[organism:exp] AND biomol_genomic[prop] AND complete genome NOT RefSeq", "txid572289[organism:exp] AND biomol_genomic[prop] NOT RefSeq", "txid1159907[organism:exp] AND biomol_genomic[prop] NOT RefSeq", "txid1159904[organism:exp] AND biomol_genomic[prop] NOT RefSeq", "txid1590370[organism:exp] AND biomol_genomic[prop] AND complete genome NOT RefSeq", "txid290028[organism:exp] AND biomol_genomic[prop] AND complete genome NOT RefSeq", "txid11138[organism:exp] AND biomol_genomic[prop] AND complete genome AND coronavirus NOT RefSeq", "Myodes coronavirus 2JL14 AND complete genome", "txid1541205[organism:exp] AND biomol_genomic[prop] NOT RefSeq", "Hedgehog coronavirus 1 AND complete genome NOT RefSeq", "txid1335626[organism:exp] AND biomol_genomic[prop] AND complete genome NOT RefSeq", "txid694008[organism:exp] AND biomol_genomic[prop] AND complete genome NOT RefSeq", "Tylonycteris bat coronavirus HKU4 AND complete genome NOT RefSeq", "txid1892416[organism:exp] AND biomol_genomic[prop] AND complete genome NOT RefSeq", "txid694006[organism:exp] AND biomol_genomic[prop] AND complete genome NOT RefSeq", "Severe acute respiratory syndrome-related coronavirus AND complete genome NOT RefSeq", "MT663548.1 NOT RefSeq", "Bat coronavirus CDPHE15 NOT RefSeq", "Alphacoronavirus CHB25 NOT RefSeq", "Alphacoronavirus WA3607 NOT RefSeq", "Bat coronavirus HKU10 AND complete genome NOT RefSeq", "Rhinolophus ferrumequinum alphacoronavirus HuB-2013 AND complete genome NOT RefSeq", "Human coronavirus 229E AND complete genome NOT RefSeq", "Lucheng Rn rat coronavirus AND complete genome NOT RefSeq", "Mink coronavirus 1 AND complete genome NOT RefSeq", "Miniopterus bat coronavirus 1 AND complete genome NOT RefSeq", "Miniopterus bat coronavirus HKU8 AND complete genome NOT RefSeq", "Myotis ricketti alphacoronavirus Sax-2011 AND complete genome NOT RefSeq", "Alphacoronavirus HKU33 AND complete genome NOT RefSeq", "Alphacoronavirus WA2028 AND complete genome NOT RefSeq", "Nyctalus velutinus alphacoronavirus SC-2013 AND complete genome NOT RefSeq", "Pipistrellus kuhlii coronavirus 3398 AND complete genome NOT RefSeq", "Alphacoronavirus WA1087 NOT RefSeq", "txid28295[organism:exp] AND biomol_genomic[prop] AND complete genome NOT RefSeq", "txid693999[organism:exp] AND biomol_genomic[prop] AND complete genome NOT RefSeq", "txid693998[organism:exp] AND biomol_genomic[prop] AND complete genome NOT RefSeq", "txid277944[organism:exp] AND biomol_genomic[prop] AND complete genome NOT RefSeq", "txid1920748[organism:exp] AND biomol_genomic[prop] AND complete genome NOT RefSeq", "Alphacoronavirus 1 AND complete genome NOT RefSeq" )
+
+
+subgenus <- c("Brangacovirus", "Cegacovirus", "Igacovirus", "Andecovirus", "Buldecovirus", "Herdecovirus", "Embecovirus", "Hibecovirus", "Merbecovirus", "Nobecovirus", "Sarbecovirus", "Pedacovirus","Duvinacovirus", "Colacovirus", "Decacovirus", "Duvinacovirus", "Luchacovirus", "Minacovirus", "Minunacovirus", "Myotacovirus", "Nyctacovirus", "Pedacovirus", "Rhinacovirus", "Setracovirus", "Tegacovirus")
+
+#adds_to_acc <- rep(subgenus, c(2,4, 3, 2,2,10,2, 12, 2, 15, 8, 4, 2,2, 3, 11, 2, 4,4,12,2,10, 5, 4, 8 ,4))
+
+#class(covid_seqs)
+
+#empty vector to contain the ids for each sequence
+ids <- c()
+#retain at most 4 sequences from each search term. Obtain their ids.
+for (i in term){
+  search <- entrez_search("nucleotide", term=i, retmax=1)
+  ids <- c(ids, search$ids)
+}
+length(ids)
+#id_counts
+as.vector(ids)
+
+# fetching the seqeunces from NCBI as fasta files
+covid_seqs <- entrez_fetch("nucleotide", id = ids, rettype = "fasta")
+
+# fetching full genbank details to get taxonomy information
+gen_file <- entrez_fetch("nucleotide", id = ids, rettype = "gb")
+
+#40, 14
+
+#writing to disk
+write(covid_seqs, "covid_fastas", sep = "\n")
+write(gen_file, "genback_file", sep = "\n")
+
+```
+
+```{bash}
+# retreiving subgenera names from genbank detail
+grep -A 3 "Virus" genback_file | grep -v -E "REF|AUTH|REMARK|JOURNA|\--|PUBMED|CONSRTM|TITLE|COMMENT|;$" | sed -E 's/ *//g' | grep -E "Alpha|Gamma|Beta|Delta|Nidovirales" | sed -E 's/.*;(.*);.*/\1/' | sed -E 's/^.*;//g'    
+
+#Acesssion numbers from fasta file
+grep ">" sequence.fasta | sed -E "s/>(.*\.[0-9]) +.*/\1/g"
+
+#combine accnumber and subgenus names
+paste -d "_" acc_list sub_list > new_names 
+paste -d "_" acc_list subgenus  | sed 's/Gammacoronavirus/Brangacovirus/g' | sed -e 's/MT663548.1_Alphacoronavirus/MT663548.1_Amalacovirus/g' | sed 's/MK472070.1_Alphacoronavirus/MK472070.1_Decacovirus/g' | sed -e 's/MK472068.1_Alphacoronavirus/MK472068.1_Nyctacovirus/g' | sed -e 's/MK472067.1_Alphacoronavirus/MK472067.1_Pedacovirus/g' | sed -e 's/MK720944.1_AlphacoronavirusHKU33/MK720944.1_Nyctacovirus/g' | sed -e 's/MN611525.1_AlphacoronavirusCHB25/MN611525.1_Decacovirus/g' > new_names
+
+#rename fasta file
+
+#Fasta files into one liners to remove sequences 
+sed -E 's/>/\n@>/g' news_fast | sed -E 's/(>.*)$/\1#/g' | tr -d "\n" | tr "@" "\n"
+sed -E 's/$/#/g' cov_genus | sed -E 's/>/@>/g' | tr -d "\n" | sed -E 's/@/\n/g'
+
+#extraxct sequences portion only
+sed -E 's/$/#/g' sequence.fasta | sed -E 's/(>.*$)/\1@/g'  | tr -d '\n'| sed -E 's/>/\n/g' | sed -E 's/@/\n/g' | grep -v "genome" > seqs
+
+#merge new names with sequnces
+paste -d "@" new_names seqs | sed -E 's/[@|#]/\n/g'
+
+
+
+```
+
+
+
+
+VIRIDIC results
+
+```{r}
+#cov_clusters <- read_tsv("/Users/sairaasif49/Downloads/VIRIDIC_cluster_table.tsv")
+
+#Distance matrix
+cov_dist <- read_tsv("/Users/sairaasif49/Downloads/VIRIDIC_sim-dist_table.tsv") 
+
+#Heat map from distance matrix
+pivot_longer(cov_dist, cols=names(cov_dist)[-1], names_to = "genome2", values_to = "distance") %>%
+  ggplot(aes(x=genome, y=genome2, fill=distance)) +
+  geom_tile()
+
+genus <- c("Gammacoronavirus", "Deltacoronavirus", "Betacoronavirus", "Alphacoronavirus")
+
+
+cov <- cov_dist %>%
+  separate(genome, sep="_(?=[^_]+$)", into=c("genome", "subgenus")) %>%
+  select(genome, subgenus) %>%
+  group_by(subgenus) %>%
+  mutate(cn=n()) 
+
+subgenus
+sum(cov$subgenus =="Cegacovirus")
+
+rep_c <- c()
+
+for (i in subgenus) {
+  if (i %in% names(table(cov$subgenus))){
+    print("TURE")
+    #rep_n= rep(i, table(cov$subgenus)[i])
+    #rep_c = c(rep_c, rep_n)
+    
+  } else(
+    print("F")
+  )
+
+}
+
+names(table(cov$subgenus)) == "Brangacovirus"
+
+length(unique(cov$subgenus))
+length(rep_c)
+rep(unique(cov$subgenus), as.vector(rep_c))
+
+
+arrayInd(which.min(as.matrix(cov_dist[-1])), dim(as.matrix(cov_dist[-1])))
+names(cov_dist[122,122])
+cov_dist[122]
+
+#Find idex of smallest value in matrix
+cov_dist[which(cov_dist == min(cov_dist), arr.ind = TRUE)[1], which(cov_dist == min(cov_dist), arr.ind = TRUE)[2]]
+
+cov_mat <- cov_dist[-1]
+rownames(cov_mat) <- cov_dist$genome
+
+#Finding smallest value 
+which(cov_mat == min(cov_mat), arr.ind = TRUE)
+cov_dist[39,1]
+colnames(cov_mat[6])
+
+min(apply(cov_dist[-1], 2, function(x){ min(x)}))
+
+
+```
+
 
 ## Alignments (within virus) 
 
+CLUSTAL can be used to align the two sequences that are the most distanly related.
+
+
+
 ## Algorthim for Conserved regions
 
-## Explore Similarities of Conserved Regions
+## Changing header to include subgenus names on fasta file
+```{r}
+
+#Adding Subgenus names to FASTA headers
+names_file <- read_lines("/Users/sairaasif49/Desktop/BINF*6999/na")
+names_file <- names_file %>%
+   str_remove(">")
+
+#read in fasta file as df with sq column and 
+fast <- read_fasta("/Users/sairaasif49/Desktop/BINF*6999/sequence.fasta") 
+
+str_locate_all(fast$sq, "!")
+str_count(fas$sq, "!")
+
+names2 <- fas$name %>%
+  str_remove("^[A-z0-9.]+") 
+
+new_names <- paste(names_file, names2, sep="")  
+ 
+write_fasta(fas$sq, new_names, "new_names_fasta")
+
+new_fas <- read_fasta("/Users/sairaasif49/Desktop/BINF*6999/new_names_fasta") 
 
 
+```
 
 ## Viral Classification 
+```{r}
+cov_genus <- read_tsv("/Users/sairaasif49/Desktop/BINF*6999/covid_tsv",col_names = F) 
+colnames(cov_genus) <- c("seq", "genus", "subgenus")
+#cov_genus$seq2 <- DNAStringSet(cov_genus$seq)
+#names(cov_genus$seq2) <- cov_genus$subgenus
+#alignment <- DNAStringSet(muscle::muscle(cov_genus$seq2, maxiters=2), use.names=T)
+#writing aligned file to disk
+#writeXStringSet(alignment, "cov_align")
+
+aligns <- c()
+
+for (i in unique(cov_genus$genus)){
+  sti <- cov_genus %>%
+    filter(genus==i) 
+  sti <- as.data.frame(sti)
+  #print(sti)
+  sti$seq2 <-  DNAStringSet(sti$seq)
+  #print(sti)
+  names(sti$seq2) <- sti$subgenus
+   alignment <- DNAStringSet(muscle::muscle(sti$seq2, maxiters=2), use.names=T)
+   aligns <- c(aligns, alignment)
+
+}
+
+?muscle::muscle
+
+BrowseSeqs(aligns[[4]])
+
+writeXStringSet(c(aligns[[1]], aligns[[2]],aligns[[3]],aligns[[4]]), "cov_align")
+writeXStringSet(aligns[[1]], "gamma_align")
+writeXStringSet(aligns[[2]], "delta_align")
+writeXStringSet(aligns[[3]], "beta_align")
+writeXStringSet(aligns[[4]], "alpha_align")
+```
 
