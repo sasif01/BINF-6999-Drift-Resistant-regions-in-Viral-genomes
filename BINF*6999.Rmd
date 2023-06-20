@@ -14,6 +14,8 @@ library(RFLPtools)
 library(tidysq)
 library(ape)
 library(Biostrings)
+#install.packages("MACER")
+library(MACER)
 library(stringi)
 library(BiocManager)
 library(DECIPHER)
@@ -33,12 +35,15 @@ Viral genomes are obtained from NCBI and loaded into R using rentrez functions
 for i in GC*; do cat $i/* >> fastas; done
 ```
 
-Possible PCA plots using sim/dist matrix
+**Possible PCA plots using sim/dist matrix**
 
 ```{r}
+#Possible PCA plots using sim/dist matrix
+
 list_names$`Assembly Accession`[1]
 sea <- entrez_search(db="genome", term = "GCA_000848685.1[AACC]")
 entrez_fetch(db="genome", id = sea$ids, rettype = "fasta")
+entrez_db_searchable("nucleotide")
 
 covid_fastas <- readBStringSet("/Users/sairaasif49/Downloads/fastas")
 cluster_all <- read_tsv("/Users/sairaasif49/Downloads/VIRIDIC_cluster_table.tsv")
@@ -72,19 +77,12 @@ eigen_percent <- round(((values_fun$eig)/sum(values_fun$eig))*100,2)
 
 ```
 
-
-
+**Loading Data from NCBI**
 
 ```{r}
 # vector of search terms for the ~26 genus of SubFamily Orthocoronavirinae
 term= c("txid2569586[organism:exp] AND biomol_genomic[prop] NOT RefSeq","txid694015[organism:exp] AND biomol_genomic[prop] AND complete genome NOT RefSeq", "txid300188[organism:exp] AND biomol_genomic[prop] AND 27000:28000[SLEN] NOT RefSeq", "txid1159908[organism:exp] AND biomol_genomic[prop] NOT RefSeq", "txid572288[organism:exp] AND biomol_genomic[prop] NOT RefSeq", "txid1159902[organism:exp] AND biomol_genomic[prop] NOT RefSeq", "txid1159905[organism:exp] AND biomol_genomic[prop] AND complete genome NOT RefSeq", "txid572289[organism:exp] AND biomol_genomic[prop] NOT RefSeq", "txid1159907[organism:exp] AND biomol_genomic[prop] NOT RefSeq", "txid1159904[organism:exp] AND biomol_genomic[prop] NOT RefSeq", "txid1590370[organism:exp] AND biomol_genomic[prop] AND complete genome NOT RefSeq", "txid290028[organism:exp] AND biomol_genomic[prop] AND complete genome NOT RefSeq", "txid11138[organism:exp] AND biomol_genomic[prop] AND complete genome AND coronavirus NOT RefSeq", "Myodes coronavirus 2JL14 AND complete genome", "txid1541205[organism:exp] AND biomol_genomic[prop] NOT RefSeq", "Hedgehog coronavirus 1 AND complete genome NOT RefSeq", "txid1335626[organism:exp] AND biomol_genomic[prop] AND complete genome NOT RefSeq", "txid694008[organism:exp] AND biomol_genomic[prop] AND complete genome NOT RefSeq", "Tylonycteris bat coronavirus HKU4 AND complete genome NOT RefSeq", "txid1892416[organism:exp] AND biomol_genomic[prop] AND complete genome NOT RefSeq", "txid694006[organism:exp] AND biomol_genomic[prop] AND complete genome NOT RefSeq", "Severe acute respiratory syndrome-related coronavirus AND complete genome NOT RefSeq", "MT663548.1 NOT RefSeq", "Bat coronavirus CDPHE15 NOT RefSeq", "Alphacoronavirus CHB25 NOT RefSeq", "Alphacoronavirus WA3607 NOT RefSeq", "Bat coronavirus HKU10 AND complete genome NOT RefSeq", "Rhinolophus ferrumequinum alphacoronavirus HuB-2013 AND complete genome NOT RefSeq", "Human coronavirus 229E AND complete genome NOT RefSeq", "Lucheng Rn rat coronavirus AND complete genome NOT RefSeq", "Mink coronavirus 1 AND complete genome NOT RefSeq", "Miniopterus bat coronavirus 1 AND complete genome NOT RefSeq", "Miniopterus bat coronavirus HKU8 AND complete genome NOT RefSeq", "Myotis ricketti alphacoronavirus Sax-2011 AND complete genome NOT RefSeq", "Alphacoronavirus HKU33 AND complete genome NOT RefSeq", "Alphacoronavirus WA2028 AND complete genome NOT RefSeq", "Nyctalus velutinus alphacoronavirus SC-2013 AND complete genome NOT RefSeq", "Pipistrellus kuhlii coronavirus 3398 AND complete genome NOT RefSeq", "Alphacoronavirus WA1087 NOT RefSeq", "txid28295[organism:exp] AND biomol_genomic[prop] AND complete genome NOT RefSeq", "txid693999[organism:exp] AND biomol_genomic[prop] AND complete genome NOT RefSeq", "txid693998[organism:exp] AND biomol_genomic[prop] AND complete genome NOT RefSeq", "txid277944[organism:exp] AND biomol_genomic[prop] AND complete genome NOT RefSeq", "txid1920748[organism:exp] AND biomol_genomic[prop] AND complete genome NOT RefSeq", "Alphacoronavirus 1 AND complete genome NOT RefSeq" )
 
-
-subgenus <- c("Brangacovirus", "Cegacovirus", "Igacovirus", "Andecovirus", "Buldecovirus", "Herdecovirus", "Embecovirus", "Hibecovirus", "Merbecovirus", "Nobecovirus", "Sarbecovirus", "Pedacovirus","Duvinacovirus", "Colacovirus", "Decacovirus", "Duvinacovirus", "Luchacovirus", "Minacovirus", "Minunacovirus", "Myotacovirus", "Nyctacovirus", "Pedacovirus", "Rhinacovirus", "Setracovirus", "Tegacovirus")
-
-#adds_to_acc <- rep(subgenus, c(2,4, 3, 2,2,10,2, 12, 2, 15, 8, 4, 2,2, 3, 11, 2, 4,4,12,2,10, 5, 4, 8 ,4))
-
-#class(covid_seqs)
 
 #empty vector to contain the ids for each sequence
 ids <- c()
@@ -93,6 +91,7 @@ for (i in term){
   search <- entrez_search("nucleotide", term=i, retmax=1)
   ids <- c(ids, search$ids)
 }
+
 length(ids)
 #id_counts
 as.vector(ids)
@@ -102,8 +101,6 @@ covid_seqs <- entrez_fetch("nucleotide", id = ids, rettype = "fasta")
 
 # fetching full genbank details to get taxonomy information
 gen_file <- entrez_fetch("nucleotide", id = ids, rettype = "gb")
-
-#40, 14
 
 #writing to disk
 write(covid_seqs, "covid_fastas", sep = "\n")
@@ -133,7 +130,6 @@ sed -E 's/$/#/g' sequence.fasta | sed -E 's/(>.*$)/\1@/g'  | tr -d '\n'| sed -E 
 
 #merge new names with sequnces
 paste -d "@" new_names seqs | sed -E 's/[@|#]/\n/g'
-
 
 
 ```
@@ -208,13 +204,52 @@ min(apply(cov_dist[-1], 2, function(x){ min(x)}))
 ```
 
 
-## Alignments (within virus) 
 
-CLUSTAL can be used to align the two sequences that are the most distanly related.
+## Workflow for Isolating up-/down-stream regions of genes 
 
+```{bash}
+#Reformat the fasta file to have sequnces on one line 
+sed -E 's/$/#/g' para_fastas | sed -E 's/(^>.*)#/\1@/g' | tr -d '\n'| sed -E 's/>/\n>/g' | sed -E 's/@/\n/g' | sed -E 's/#//g' > re_fasta
 
+#Extract the start and end sites of genes from the gff3 file
+#The file will have the acession codes (that are also in fasta file) and start/end sites for genes
+grep -v '#' betaCov_lineageB.gff3 | cut -f1,4,5
 
-## Algorthim for Conserved regions
+#CDS lines to extract from gff3 files 
+grep -v '#' betaCov_lineageB.gff3 | cut -f1,3,4,5,9 | grep -E 'CDS.*product' > genes
+
+#get product from the gff3 files for each CDS
+grep -v '#' betaCov_lineageB.gff3 | cut -f1,3,4,5,9 | grep -E 'CDS.*product' | cut -f5 | sed -E 's/.*;(product=.*)/\1/g' | cut -d ';' -f1 > product
+
+#combine the gens and product files
+ paste -d '\t' genes product > genes
+ 
+```
+
+**Getting differances between start and end sites of adjacent genes**
+```{r}
+#reading in the genes_tsv file
+genes <- read_tsv("genes", col_names = F)
+#Isolate the start-end columns
+
+col1 <- genes[-1, 3]
+col2 <- genes[-nrow(genes),4]
+
+#Take differance between columns 
+diff=col1-col2
+#Add a arbritaty differance at the top of list (to ensure the vector is same length as the genes_tsv dataframe)
+diff=rbind(150, diff)
+
+#Write the diff file to wd
+write_tsv(diff, 'primer_diff', col_names = F)
+
+```
+
+```{bash}
+#Combing the differance column with the genes_tsv columns
+paste -d '\t' genes diff > genes_tsv
+```
+
 
 ## Changing header to include subgenus names on fasta file
 ```{r}
@@ -252,8 +287,9 @@ colnames(cov_genus) <- c("seq", "genus", "subgenus")
 #writing aligned file to disk
 #writeXStringSet(alignment, "cov_align")
 
-aligns <- c()
 
+# Aligning sequences genus-wise
+aligns <- c()
 for (i in unique(cov_genus$genus)){
   sti <- cov_genus %>%
     filter(genus==i) 
@@ -262,19 +298,88 @@ for (i in unique(cov_genus$genus)){
   sti$seq2 <-  DNAStringSet(sti$seq)
   #print(sti)
   names(sti$seq2) <- sti$subgenus
-   alignment <- DNAStringSet(muscle::muscle(sti$seq2, maxiters=2), use.names=T)
+   #alignment <- DNAStringSet(muscle::muscle(sti$seq2, maxiters=2, gapopen=-1000), use.names=T)
+   alignment <- DNAStringSet(muscle::muscle(sti$seq2, gapopen=-5, gapextend=2), use.names=T)
    aligns <- c(aligns, alignment)
-
 }
+#started 1:25
+BrowseSeqs(aligns[[1]])
+aligns[[1]][1:3]
+write(aligns[[1]], "gamma", sep = "\\s")
 
-?muscle::muscle
-
-BrowseSeqs(aligns[[4]])
-
+# Wirting alingments of disk
 writeXStringSet(c(aligns[[1]], aligns[[2]],aligns[[3]],aligns[[4]]), "cov_align")
 writeXStringSet(aligns[[1]], "gamma_align")
 writeXStringSet(aligns[[2]], "delta_align")
 writeXStringSet(aligns[[3]], "beta_align")
 writeXStringSet(aligns[[4]], "alpha_align")
+
+# Clustering and Dendogram of alignment
+for (i in aligns) {
+  bin <- as.DNAbin(i)
+  dist_mat <- dist.dna(bin, model = "JC69", as.matrix=T )
+  dist_mat <- as.dist(dist_mat)
+  clust <- hclust(dist_mat, method = "single")
+  plot(clust)
+}
+
+
 ```
+
+
+#Paramyxoviridae
+```{r}
+
+terms =c ("(Metaavulavirus AND complete genome) AND "Avian metaavulavirus 6"[porgn:__txid2560316]", "(Metaavulavirus AND complete genome) AND "Avian metaavulavirus 2"[porgn:__txid2560313]", "(Metaavulavirus AND complete genome) AND "Avian metaavulavirus 8"[porgn:__txid2560318]", "(Metaavulavirus AND complete genome) AND "Metaavulavirus falklandense"[porgn:__txid2560309]", "(Metaavulavirus AND complete genome) NOT (Avian metaavulavirus 6 OR Avian metaavulavirus 8 OR Avian metaavulavirus 2 OR Metaavulavirus falklandense)", "((Orthoavulavirus AND complete genome)) AND "Avian orthoavulavirus 1"[porgn:__txid2560319]", "((Orthoavulavirus AND complete genome)) AND "Pigeon paramyxovirus 1"[porgn:__txid159079]", "((Orthoavulavirus AND complete genome)) NOT ("Pigeon paramyxovirus 1"[porgn:__txid159079] OR Avian orthoavulavirus 1)", "((Paraavulavirus AND complete genome)) AND "Avian paraavulavirus 4"[porgn:__txid2560328]", "((Paraavulavirus AND complete genome)) AND "Avian paraavulavirus 3"[porgn:__txid2560327]", "(Aquaparamyxovirus AND complete genome)", "(Ferlavirus AND complete genome)", "(Henipavirus AND complete genome)", "")
+
+
+
+terms=c("Metaavulavirus AND complete genome) AND Avian metaavulavirus 6", "(Metaavulavirus AND complete genome) AND Avian metaavulavirus 2", "(Metaavulavirus AND complete genome) AND Avian metaavulavirus 8", "(Metaavulavirus AND complete genome) AND Metaavulavirus falklandense", "(Aquaparamyxovirus AND complete genome)", "(Ferlavirus AND complete genome)", "(Henipavirus AND complete genome)", "(Jeilongvirus AND complete genome)", "(Morbillivirus AND complete genome)", "(Narmovirus AND complete genome)", "(Respirovirus AND complete genome)", "(Salemvirus AND complete genome)", "(Rubulavirinae AND Orthorubulavirus AND complete genome )", "(Rubulavirinae AND Pararubulavirus AND complete genome )","Cynoglossusvirus", "Hoplichthysvirus", "Scoliodonvirus", "Metaparamyxovirinae")
+
+
+ids <- c()
+#retain at most 4 sequences from each search term. Obtain their ids.
+for (i in terms){
+  search <- entrez_search("nucleotide", term=i, retmax=5)
+  ids <- c(ids, search$ids)
+}
+length(ids)
+
+#Make sequenes and headers into a single line
+
+
+# fetching the seqeunces from NCBI as fasta files
+para_seqs <- entrez_fetch("nucleotide", id = ids, rettype = "fasta")
+
+# fetching full genbank details to get taxonomy information
+paragen_file <- entrez_fetch("nucleotide", id = ids, rettype = "gb")
+
+#writing to disk
+write(para_seqs, "para_fastas", sep = "\n")
+write(paragen_file, "paragenback_file", sep = "\n")
+
+
+ grep -A 3 "Virus" paragenback_file | grep -v -E "REF|AUTH|REMARK|JOURNA|\--|PUBMED|CONSRTM|TITLE|COMMENT|;$" | sed -E 's/ *//g' | cut -d ';' -f1 | grep -v '\.' | grep -v -E 'Antib' | grep -v 'RespiratoryTractInfectioninExperimentallyChallengedFerrets' > subs
+ 
+ 
+ grep -A 3 "Virus" paragenback_file | grep -v -E "REF|AUTH|REMARK|JOURNA|\--|PUBMED|CONSRTM|TITLE|COMMENT|;$" | sed -E 's/ *//g' | cut -d ';' -f1,2 | grep -v -E 'salmonis|Respiratory|Antibodies' | sed -E 's/;/ (SubFamily)_/g' |  grep -A 3 "Virus" paragenback_file | grep -v -E "REF|AUTH|REMARK|JOURNA|\--|PUBMED|CONSRTM|TITLE|COMMENT|;$" | sed -E 's/ *//g' | cut -d ';' -f1,2 | grep -v -E 'salmonis|Respiratory|Antibodies' | sed -E 's/;/(SubFamily)_/g' | sed -E 's/(Cynoglossusvirus|Hoplichthysvirus|Scoliodonvirus)\(SubFamily)/\1(Genus)/g' | sed -E 's/$/(Genus)/g' > subs
+ 
+ 
+ grep ">" para_fastas | sed -E "s/(>.*\.[0-9]) +.*/\1/g" > acc_numbers
+ 
+ paste -d "_" acc_numbers subs > new_names
+ 
+ #extraxct sequences portion only
+ sed -E 's/$/#/g' para_fastas | sed -E 's/(^>.*)#/\1@/g' | tr -d '\n'| sed -E 's/>/\n>/g' | sed -E 's/@/\n/g' | grep -v ">" > seqs
+ 
+ #merge new names with sequnces
+paste -d "@" new_names seqs | sed -E 's/[@|#]/\n/g'
+
+
+sed -E 's/$/#/g' para_new_fasta | sed -E 's/(^>.*)#/\1@/g' | tr -d '\n'| sed -E 's/>/\n>/g' | grep 'Avulavirinae'  | sed -E 's/@/\n/g' | sed -E 's/[@|#]/\n/g' > Avulavirinae_subfamily_fasta
+
+
+
+```
+
 
