@@ -12,6 +12,8 @@ library(rentrez)
 #install.packages("RFLPtools")
 library(RFLPtools)
 library(tidysq)
+library(dplyr)
+library(readr)
 library(ape)
 library(Biostrings)
 #install.packages("MACER")
@@ -25,56 +27,14 @@ library(DECIPHER)
 
 Viral pathogens can change rapidly through a process called drift. Through this process, conserved regions of the genome accumulate mutation and substitutions. Antigenic drift refers to the lead to changes in the surface proteins, “antigens”, of the virus (Ryt-Hansen et al. 2020). Additionally, this drift-propensity can depend on the sequences within a region, the gene or the organisms involved. This propensity for drift makes diagnostics and vaccination a challenge. Additionally, there is the challenge of the detection these viral from different specimen. Given that the virus is consistently changing, the diagnostic tools are unable detect these viruses after significant drift. 
 
+
 ## Viral (Respiratory) genomes 
 
 Viral genomes are obtained from NCBI and loaded into R using rentrez functions
 
-
 ```{bash}
 # combine all individual fasta files (located in their own directories) into a single fasta file.
 for i in GC*; do cat $i/* >> fastas; done
-```
-
-**Possible PCA plots using sim/dist matrix**
-
-```{r}
-#Possible PCA plots using sim/dist matrix
-
-list_names$`Assembly Accession`[1]
-sea <- entrez_search(db="genome", term = "GCA_000848685.1[AACC]")
-entrez_fetch(db="genome", id = sea$ids, rettype = "fasta")
-entrez_db_searchable("nucleotide")
-
-covid_fastas <- readBStringSet("/Users/sairaasif49/Downloads/fastas")
-cluster_all <- read_tsv("/Users/sairaasif49/Downloads/VIRIDIC_cluster_table.tsv")
-term
-
-sim_26_dist <- read_tsv("/Users/sairaasif49/Downloads/VIRIDIC_sim-dist_table (3).tsv")
-
-values_fun <- cmdscale(as.matrix(sim_26_dist[-1]),eig=T,5)
-
-## Extract the eigen vectors
-eigenvec <- cbind(sim_26_dist$genome,values_fun$points)
-autoplot(values_fun)
-autoplot(cmdscale(as.matrix(sim_26_dist[-1]), eig = TRUE), label = TRUE, label.size = 3)
-
-
-sim2dist(as.matrix(sim_26[-1]), maxSim = 1)
-## Proportion of variation captured by each eigen vector
-eigen_percent <- round(((values_fun$eig)/sum(values_fun$eig))*100,2)
-
-
-# PCA plot
-#ggplot(data = eigenvec) +
- #geom_point(mapping = aes(x = `1`, y = `2`), show.legend = FALSE ) + 
- #geom_hline(yintercept = 0, linetype="dotted") + 
- #geom_vline(xintercept = 0, linetype="dotted") +
- #labs(title = "PCA of Coronovidie",
-  #  x = paste0("Principal component 1 (",eigen_percent[1]," %)"),
-   # y = paste0("Principal component 2 (",eigen_percent[2]," %)")) + 
-# theme_minimal()
-
-
 ```
 
 **Loading Data from NCBI**
@@ -106,10 +66,12 @@ gen_file <- entrez_fetch("nucleotide", id = ids, rettype = "gb")
 write(covid_seqs, "covid_fastas", sep = "\n")
 write(gen_file, "genback_file", sep = "\n")
 
+
 ```
 
+**retrieving subgenera names from genbank detail**
 ```{bash}
-# retreiving subgenera names from genbank detail
+# retrieving subgenera names from genbank detail
 grep -A 3 "Virus" genback_file | grep -v -E "REF|AUTH|REMARK|JOURNA|\--|PUBMED|CONSRTM|TITLE|COMMENT|;$" | sed -E 's/ *//g' | grep -E "Alpha|Gamma|Beta|Delta|Nidovirales" | sed -E 's/.*;(.*);.*/\1/' | sed -E 's/^.*;//g'    
 
 #Acesssion numbers from fasta file
@@ -133,9 +95,6 @@ paste -d "@" new_names seqs | sed -E 's/[@|#]/\n/g'
 
 
 ```
-
-
-
 
 VIRIDIC results
 
@@ -204,7 +163,6 @@ min(apply(cov_dist[-1], 2, function(x){ min(x)}))
 ```
 
 
-
 ## Workflow for Isolating up-/down-stream regions of genes 
 
 ```{bash}
@@ -216,10 +174,10 @@ sed -E 's/$/#/g' para_fastas | sed -E 's/(^>.*)#/\1@/g' | tr -d '\n'| sed -E 's/
 grep -v '#' betaCov_lineageB.gff3 | cut -f1,4,5
 
 #CDS lines to extract from gff3 files 
-grep -v '#' betaCov_lineageB.gff3 | cut -f1,3,4,5,9 | grep -E 'CDS.*product' > genes
+grep -v '#' betaCov_lineageB.gff3 | cut -f1,3,4,5,9 | grep -E 'CDS.*product' | cut -f1,2,3,4 > genes
 
 #get product from the gff3 files for each CDS
-grep -v '#' betaCov_lineageB.gff3 | cut -f1,3,4,5,9 | grep -E 'CDS.*product' | cut -f5 | sed -E 's/.*;(product=.*)/\1/g' | cut -d ';' -f1 > product
+grep -v '#' betaCov_lineageB.gff3 | cut -wcf1,3,4,5,9 | grep -E 'CDS.*product' | cut -f5 | sed -E 's/.*;(product=.*)/\1/g' | cut -d ';' -f1 > product
 
 #combine the gens and product files
  paste -d '\t' genes product > genes
@@ -229,7 +187,7 @@ grep -v '#' betaCov_lineageB.gff3 | cut -f1,3,4,5,9 | grep -E 'CDS.*product' | c
 **Getting differances between start and end sites of adjacent genes**
 ```{r}
 #reading in the genes_tsv file
-genes <- read_tsv("genes", col_names = F)
+genes <- read_tsv("genes_prod", col_names = F)
 #Isolate the start-end columns
 
 col1 <- genes[-1, 3]
@@ -241,13 +199,117 @@ diff=col1-col2
 diff=rbind(150, diff)
 
 #Write the diff file to wd
-write_tsv(diff, 'primer_diff', col_names = F)
+write_tsv(diff, 'gamma_diff', col_names = F)
 
 ```
 
 ```{bash}
 #Combing the differance column with the genes_tsv columns
 paste -d '\t' genes diff > genes_tsv
+```
+
+**Python script**
+```{python}
+import os
+import re
+import sys
+from sys import argv
+
+#genes=open("genes_tsv", 'r')
+genes=open('primer_genes', 'r')
+seqs=open('beta', 'r')
+seqs_line=seqs.readlines()
+cons=open('primer_cons', 'w')
+seqs.close()
+
+for i in genes.readlines():
+        lines=i.rstrip()
+        datalines=lines.split('\t')
+        start_gene=int(datalines[2])
+        end_gene=int(datalines[3])
+        for index, line in enumerate(seqs_line):
+                if (datalines[0] in line):
+                        header=seqs_line[index]
+#                       print(header)
+                        head=header.rstrip()
+                        nuc=seqs_line[index+1]
+                        if ( start_gene==1 and end_gene<30):
+                         print(head+''+datalines[1]+'\n'+nuc[start_gene:end_gene])
+                        else:
+                                print(head+''+datalines[1]+'\n'+nuc[start_gene:end_gene])
+
+#for i in genes.readlines():
+#       lines=i.rstrip()
+#       datalines=lines.split('\t')
+#       diff=int(datalines[4])
+#       if (diff > 20 and diff < 200):
+#               start_gene=int(datalines[1])
+#               int_list1up=start_gene-diff
+#               end_gene=int(datalines[2])
+#               int_list2down=end_gene+diff
+#               for index, line in enumerate(seqs_line):
+#               #       seq_line=line.rstrip()
+#                       if (datalines[0] in line):
+#                               header=seqs_line[index]
+#                               head=header.rstrip()
+#                               nuc=seqs_line[index+1]
+##                              print(head+' '+datalines[3]+'\n'+nuc[int_list1up:start_g$
+                        #       cons.write(head+' '+datalines[3]+'\n'+nuc[int_list1up:st$
+
+```
+
+**Alignments using muscle - grouped based on genes**
+
+```{r}
+seqs <-read_fasta("gamma_cons")
+seqs <- read_fasta('M_cons')
+seqs$prods <- str_replace(seqs$name, '.*product=', '') 
+
+seqs$prods <- str_replace(seqs$prods, '.*protein M', 'membrane protein M')
+seqs$prods <- str_replace(seqs$prods, '^M$', 'membrane protein M')
+seqs$prods <- str_replace(seqs$prods, 'M protein', 'membrane protein M')
+seqs$prods <- str_replace(seqs$prods, 'Orf14', 'ORF14')
+seqs$prods <- str_replace(seqs$prods, 'ORF 8', 'ORF8')
+
+seqs$prods <- str_replace(seqs$prods, 'ORF8 .*', 'ORF8')
+seqs$prods <- str_replace(seqs$prods, 'orf8.*', 'ORF8')
+seqs$prods <- str_replace(seqs$prods, 'orf10.*', 'ORF10')
+seqs$prods <- str_replace(seqs$prods, 'ORF10.*', 'ORF10')
+seqs$prods <- str_replace(seqs$prods, 'hypothetical.*ORF10', 'hypothetical ORF10')
+seqs$prods <- str_replace(seqs$prods, 'hypothetical.*orf14.*', 'hypothetical ORF14')
+unique(seqs$prods)
+
+df=as.data.frame(seqs)
+seqs$sq2 <- DNAStringSet(df$sq)
+
+aligns <- c()
+consensusseq <- c()
+for (i in unique(seqs$prods)){
+  sti <- seqs %>%
+    filter(prods==i) 
+  sti <- as.data.frame(sti)
+  if (nrow(sti) >2){
+   sti$seq2 <-  DNAStringSet(sti$sq) 
+  names(sti$seq2) <- sti$prods
+  alignment <- DNAStringSet(muscle::muscle(sti$seq2, gapopen=-5, gapextend=2), use.names=T)
+  cons <- ConsensusSequence(alignment)
+  aligns <- c(aligns, alignment) 
+  consensusseq <- c(consensusseq, cons)
+  }
+}
+
+str_
+consensusseq[[4]]
+BrowseSeqs(aligns[[6]])
+length(aligns[[6]])
+str_count(as.data.frame(ConsensusSequence(aligns[[6]])), '\\+')/width(ConsensusSequence(aligns[[6]]))
+ConsensusSequence(aligns[[6]])
+
+alpha <- readDNAStringSet("Sars/2020-7_2020-12")
+alpha2 <- readDNAStringSet("Sars/2020-9_2021-2")
+alignment <- DNAStringSet(muscle::muscle(alpha2, gapopen=-5, gapextend=2), use.names=T)
+ConsensusSequence(alignment)
+BrowseSeqs(alignment)
 ```
 
 
@@ -381,5 +443,344 @@ sed -E 's/$/#/g' para_new_fasta | sed -E 's/(^>.*)#/\1@/g' | tr -d '\n'| sed -E 
 
 
 ```
+
+```{r}
+sars <- readDNAStringSet("Sars/sequences_20230621_3319914.fasta")
+alignment <- DNAStringSet(muscle::muscle(sars, gapopen=-5, gapextend=2), use.names=T)
+
+```
+
+**Timeframes SARS-Cov-2**
+
+```{bash}
+#Aligning the sequences in muscle in computecanada
+for i in sequences_20230621_*; do sbatch align_script $i; done
+
+#Remote to local
+scp -r sasif01@graham.computecanada.ca:scratch/BINF_6999/sequences_20230621_393424.align  .
+```
+
+```{r}
+library(fs)
+#Get file path for each file
+file_path <-dir_ls(path='./Sars', regexp = '[0-9]$')
+
+#Empty list that will hold the aligned files
+file_content=list()
+file_content=c()
+?ConsensusSequence
+#Loop to open each aligned file and return consensus sequence.
+for(i in seq_along(file_path)){
+  file_content[i] <- as.data.frame(ConsensusSequence(readDNAStringSet(file_path[[i]])))$x
+}
+
+file_content <- set_names(file_content, word(file_path, 3L, sep = '/'))
+
+write(file_content, 'test')
+write(names(file_content), 'name')
+
+```
+
+##OBJECTIVE##
+
+Molecular diagnostic assays require unique and conserved genomic regions to rapidly identify viruses. However, high mutation rates and genetic drift can result in a loss of sensitivity over time. Identifying stable, drift-resistant regions in viral genomes could be used to better molecular assays techniques. The aim of this project is to outline a bioinformatic pipeline that can identify drift-resistant regions of viral genomes. The analysis focuses on respiratory viruses (Influenza, SARS-Cov-2 etc.) with the potential of extending to other human pathogenic viruses. Identification of drift-resistant regions will allow us to complement the standard alignment-based process for viruses with extensive number of sequence submissions. The need to rapidly identify these variants is essential to the developments of vaccinations and public health measures/prevention plans. The development of this pipeline would enable us to identify features of the drift-resistant regions that can be targeted to improve detection of viruses undergoing drift. This would significantly reduce diagnostic detection time and ensure a rapid response to the presence of pathogen in specimens. 
+
+##METHODS##
+
+####TIMEFRAMES#####
+
+###DATA 
+
+Aligned sequences are retrieved from Nextstrain (aligned.fasta). The sequences were aligned using Nextclade with MN908947 (Wuhan-Hu-1) as a reference.
+
+Downloading data from NCBI Virus. 
+Up to 2000 sequences were retrieved for each varient, along with a results table (metadata) containing Accession, Release Date, Panoglin, Length, Country, Collection Date. An addition column is added to each table to include the WHO lineage for each varient. 
+
+Instructions for adding a Lineage column to data
+
+```{bash}
+#Create a single File with the name of the Lineage. 
+
+echo 'Lineage' > Lineage
+# first variant should keep the headers information
+sed rLineage var1.meta | sed 'N;s/\n/,/' > var1.meta
+#Change first 'Lineage' (in header) to Lineage
+sed -E 's/(.*,Collection_Date,)Delta/\1Lineage/g'
+
+#remove header info from second and all remaining variants 
+sed rLineage var1.meta | sed 'N;s/\n/, /' | grep -v 'Pangolin' >  var2.meta
+
+#Loop for it for all files at once
+for i in *.meta; do sed rLineage $i | sed 'N;s/\n/, /' > $i.meta; done
+
+#Concatenate all the varients into a single file (do the same for sequence data)
+cat var1.meta var2.mets var3.meta > Lineage.meta
+
+#Custom buil selection: Accession,Panolin, length, Country , Collection Date, Release Date, Genbank Title
+
+#building meta file
+ grep '>' sequences.fasta | cut -d ' ' -f1,2 | sed -E 's/\|/,/g' | sed -E 's/,Se.*//g' | sed -E 's/>//g' > varient.meta
+ 
+ cat alpha.fasta beta.fasta epsilon.fasta eta.fasta iota.fasta mu.fasta tu.fasta zeta.fasta > lineages.fasta
+ 
+```
+
+
+Separating into Timeframes
+
+Custom python script is used to organize sequences into time time-intervals with varying degree of overlap.
+
+```{python}
+import re
+import sys
+from sys import argv
+from itertools import count
+
+####TIMEFRAMES (As a function)#####
+
+#4 months (2month overlap) = overlap: range(0,12,2) and window : range(1,5)
+#6 month (2 month overlap) = overlap: range(0,12,2) and window : range(1,7)
+def timeframes(window, overlap):
+        file1=open(sys.argv[1], 'r') #FIRST COMMAND  LINE ARGUMENT: metadata file
+        seqs=open(sys.argv[2], 'r') # SECOND COMMAND LINE ARGUMENT : fasta file 
+        seq_lines=seqs.readlines()
+        file1_line=file1.readlines()
+        dict={}
+        for i in file1_line:
+            lines=i.rstrip()
+            datalines=lines.split(',') #Specify the delimiter from the metadata file 
+            for j in range(18,23):
+                for k in range(0,12,overlap): #Adjust this to alter overalp (2-/4-months etc.)
+                    for l in range(1,window+1): #Adjust this to alter time intervals (4-/ 6-months etc.)
+                        if (k+window <=12):
+                            for m in re.findall('20'+str(j)+r'-'+"{:02d}".format(k+l), lines):
+                                if ('20'+str(j)+'-'+str(k+1)+'_20'+str(j)+'-'+str(k+window) not in dict.keys()):
+                                    dict['20'+str(j)+'-'+str(k+1)+'_20'+str(j)+'-'+str(k+window)]=[]
+                                dict['20'+str(j)+'-'+str(k+1)+'_20'+str(j)+'-'+str(k+window)].append(datalines[0])
+                        else:
+                            for m in re.findall('20'+str(j+1)+'-'+"{:02d}".format(k+l-12),lines):
+                                if ('20'+str(j)+'-'+str(k+1)+'_20'+str(j+1)+'-'+str(k+window-12) not in dict.keys()):
+                                    dict['20'+str(j)+'-'+str(k+1)+'_20'+str(j+1)+'-'+str(k+window-12)]=[]
+                                dict['20'+str(j)+'-'+str(k+1)+'_20'+str(j+1)+'-'+str(k+window-12)].append(datalines[0])
+                            for n in re.findall('20'+str(j)+'-'+"{:02d}".format(k+l),lines):
+                                if ('20'+str(j)+'-'+str(k+1)+'_20'+str(j+1)+'-'+str(k+window-12) not in dict.keys()):
+                                    dict['20'+str(j)+'-'+str(k+1)+'_20'+str(j+1)+'-'+str(k+window-12)]=[]   
+                                dict['20'+str(j)+'-'+str(k+1)+'_20'+str(j+1)+'-'+str(k+window-12)].append(datalines[0])
+  for i in d.keys():
+                fasts=open(i,'w')
+                for index, line in enumerate(seq_lines):
+                        for j in d[i]:                  
+                                if (j in line):
+                                        header=seq_lines[index]
+                                        head=header.rstrip()
+                                        nuc=seq_lines[index+1]
+                                        fasts.write(header.rstrip()+'\n'+nuc)
+                                        
+  #Ensures no duplicate values/accession code across keys                                  
+  d={key:value for key, value in zip(dict.keys(), [list(set(dict[i])) for i in dict.keys()])}
+  
+  #Extract the sequences for each timeframe (key in the dict), whose accession numbers are in the list of value for each key
+  for i in d.keys():
+    fasts=open(i,'w')
+    for index, line in enumerate(seq_lines):
+      for j in d[i]:
+        if (j in line):
+          header=seq_lines[index]
+          nuc=seq_lines[index+1]
+          fasts.write(header.rstrip()+'\n'+nuc)
+      
+```
+
+4-month (2 month overlap)
+
+**Alignments**
+
+```{bash}
+#Align all fasta files for each variant 
+for i in *; do mafft $i > $i.aligned; done
+```
+
+
+Total of 20 fasta files generated after separating into time intervals
+
+```{r}
+library(fs)
+#Get file path for each file
+file_path <-dir_ls(path='./Sars/NEXTSTRAIN/6_months', regexp = '[0-9]$')
+
+#Empty list that will hold the aligned files
+file_content=c()
+
+for(i in seq_along(file_path)){
+  file_content[i] <- as.data.frame(ConsensusSequence(readDNAStringSet(file_path[[i]])))$x
+}
+
+#Reading in variant information for 4-month intervals 
+vars <- read_tsv("Sars/NEXTSTRAIN/6_months/varients_6", col_names = F )
+names(vars) <- c("date", "varients")
+vars$varients <- str_replace(vars$varients, '[0-9]+[A-z] ', '')
+vars$varients <- str_replace(vars$varients, ',.*', ')')
+
+#Histogram of number of sequences at each interval split by varient type
+# Majority of sequences are Omicron after 2022
+vars %>%
+  ggplot() + geom_histogram(aes(date, fill=varients), stat = "count") + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+ls
+#Setting name of each consensus as the time range
+file_content <- set_names(file_content, word(file_path, 5L, sep = '/'))
+
+#Write the consensus seq and names as two different files
+#write(file_content, 'seqs')
+#write(names(file_content), 'headers')
+
+#Writing all consensus seqs for each time range to a single file 
+write(paste(names(file_content), file_content, sep = '\n'), 'consensus_6mn')
+
+```
+
+6-month (2 month overlap)
+
+
+```{r}
+#Reading in varient information for 4-month intervals 
+vars <- read_tsv("Sars/NEXTSTRAIN/varients_6", col_names = F )
+names(vars) <- c("date", "varients")
+vars$varients <- str_replace(vars$varients, '[0-9]+[A-z] ', '')
+vars$varients <- str_replace(vars$varients, ',.*', ')')
+
+unique(vars$date)
+vars %>%
+  ggplot() + geom_histogram(aes(date, fill=varients), stat = "count") + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
+
+Scoring the Consensus Sequences
+
+A custom python script is used to fragment the consensus sequences and 'score' each segment, while filtering out low scoring regions.
+The remaining fragments will be considered highly conserved. 
+
+Additionally, only fragments that appear across all time-ranges (in each consensus seq) are kept for further comparisons 
+
+```{python}
+
+import re
+import os
+import sys
+from os import path
+from sys import argv
+
+seq=open(sys.argv[1], 'r')
+seq_lines=seq.readlines()
+
+#FIRST COMMAND LINE ARGUMENT: the file of consesuss sequences for each timframe (in one file)
+con=open(sys.argv[2], 'r')
+con_lines=con.readlines()
+
+#conservation scores for each consesusus sequnces for each timframe file 
+#for file in os.listdir(r'/Users/sairaasif49/Desktop/BINF*6999/Sars/frames/'):
+#       #zuc holds the aligned seqices from each timeframe 
+#       zuc=[]
+#       files=open(file, 'r')
+#       files_lines=files.readlines()
+#       for index, line in enumerate(files_lines):
+#               if (line.startswith('>')):
+#                       zuc.append(files_lines[index+1])
+#
+#       stretch=open(file+'_stretches', 'w')
+#       #counts how many time the aligned sequnces have the same character as the consesus seq  
+#       for index2, line2 in enumerate(con_lines):
+#               if (line2.startswith(file)):
+#                       header2=con_lines[index2]
+#                       con_seq=con_lines[index2+1]
+#                       d=[i[1].count(i[0]) for i in zip(con_seq, zip(*zuc))]
+#                       b=[len(i[1]) for i in zip(con_seq, zip(*zuc))]
+#                       #Scores each nucleotide site for each consensus sequence
+#                       s=[d[i]/b[i] for i in range(0,len(d))]
+#                       #Scores the whole consensus seq (one number)
+#               #       s=sum([d[i]/b[i] for i in range(0,len(d))])/len(con_seq)
+#                       idx_list = [idx + 1 for idx, val in enumerate(s) if val <= 0.95]
+#                       res = [s[i: j] for i, j in zip([0] + idx_list, idx_list +([len(s)] if idx_list[-1] != len(s) else []))]                       
+#                       lis=[[i, len(val)] for i,val in enumerate(res) if len(val) > 100]
+#                       seq=[[j[0],j[0]+j[1],con_seq[j[1]:j[0]+j[1]]] for j in lis]
+#                       fil='\n'.join(','.join([str(elem) for elem in x]) for x in seq)
+#                       fil2=re.sub('(,[^,]*),', r'\1\n', fil).replace(',', '-')
+#                       fil3=re.sub(r'([0-9]+-[0-9]+)', r'>\1', fil2)
+#                       stretch.write(fil3)
+```
+
+
+**COMPLICATED: Lineages approach**
+
+Delta : 2 major variants (Delta Plus:AY.4.2, Delta:B.1.617.2)
+
+Filters
+Delta Plus (53) - Location : USA, Host : Homo Sapiens, Nucleotide Completeness : complete.
+Delta (7710) -  Location : USA, Host : Homo Sapiens, Nucleotide Completeness : complete, Ambiguous Characters: 0
+
+```{bash}
+#Align all fasta files for each variant 
+for i in *; do mafft $i > $i.aligned; done
+```
+
+Consensus sequences file
+
+```{r}
+library(fs)
+#Get file path for each file
+file_path <-dir_ls(path='./Sars/DELTA_VARIENT', regexp = 'aligned$')
+
+#Empty list that will hold the aligned files
+#file_content=list()
+file_content=c()
+
+#Loop to open each aligned file and return consensus sequence.
+for(i in seq_along(file_path)){
+  file_content[i] <- as.data.frame(ConsensusSequence(readDNAStringSet(file_path[[i]])))$x
+}
+
+file_content <- set_names(file_content, word(file_path, 4L, sep = '/'))
+
+write(file_content, 'test')
+write(names(file_content), 'name')
+
+```
+
+```{bash}
+#Final consensus seq file
+paste -d '\n' name test > delta_consensus
+```
+
+Epsilon : 2 varients 
+```{r}
+#Get file path for each file
+file_path <-dir_ls(path='./Sars/EPSILON_VARIENT', regexp = 'aligned$')
+
+#Empty list that will hold the aligned files
+#file_content=list()
+file_content=c()
+
+#Loop to open each aligned file and return consensus sequence.
+for(i in seq_along(file_path)){
+  file_content[i] <- as.data.frame(ConsensusSequence(readDNAStringSet(file_path[[i]])))$x
+}
+
+file_content <- set_names(file_content, word(file_path, 4L, sep = '/'))
+
+write(file_content, 'epsilon')
+write(names(file_content),'header')
+
+```
+
+Single Variant - split into timeframes - get metadata information  
+Alpha : 1 major variant B.1.1.7
+
+
+
+
+
+
+
+
+
 
 
