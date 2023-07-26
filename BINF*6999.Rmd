@@ -606,7 +606,7 @@ Total of 20 fasta files generated after separating into time intervals
 ```{r}
 library(fs)
 #Get file path for each file
-file_path <-dir_ls(path='./Sars/NEXTSTRAIN/6_months', regexp = '[0-9]$')
+file_path <-dir_ls(path='./Sars/LINEAGES/ALIGNED_FILES', regexp = 'aligned$')
 
 #Empty list that will hold the aligned files
 file_content=c()
@@ -635,7 +635,7 @@ file_content <- set_names(file_content, word(file_path, 5L, sep = '/'))
 #write(names(file_content), 'headers')
 
 #Writing all consensus seqs for each time range to a single file 
-write(paste(names(file_content), file_content, sep = '\n'), 'consensus_6mn')
+write(paste(names(file_content), file_content, sep = '\n'), 'Consensus_4mnVars')
 
 ```
 
