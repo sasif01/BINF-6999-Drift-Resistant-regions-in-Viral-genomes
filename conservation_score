@@ -1,0 +1,86 @@
+import re
+import os
+import sys
+from os import path
+from sys import argv
+
+seq=open(sys.argv[1], 'r')
+seq_lines=seq.readlines()
+
+#FIRST COMMAND LINE ARGUMENT: the file of consesuss sequences for each timframe (in one file)
+con=open(sys.argv[2], 'r')
+con_lines=con.readlines()
+
+#conservation scores for each consesusus sequnces for each timframe file 
+#for file in os.listdir(r'/Users/sairaasif49/Desktop/BINF*6999/Sars/frames/'):
+#	#zuc holds the aligned seqices from each timeframe 
+#	zuc=[]
+#	files=open(file, 'r')
+#	files_lines=files.readlines()
+#	for index, line in enumerate(files_lines):
+#		if (line.startswith('>')):
+#			zuc.append(files_lines[index+1])
+#
+#	stretch=open(file+'_stretches', 'w')
+#	#counts how many time the aligned sequnces have the same character as the consesus seq	
+#	for index2, line2 in enumerate(con_lines):
+#		if (line2.startswith(file)):
+#			header2=con_lines[index2]
+#			con_seq=con_lines[index2+1]
+#			d=[i[1].count(i[0]) for i in zip(con_seq, zip(*zuc))]
+#			b=[len(i[1]) for i in zip(con_seq, zip(*zuc))]
+#			#Scores each nucleotide site for each consensus sequence
+#			s=[d[i]/b[i] for i in range(0,len(d))]
+#			#Scores the while consensus seq (one number)
+#		#	s=sum([d[i]/b[i] for i in range(0,len(d))])/len(con_seq)
+#			idx_list = [idx + 1 for idx, val in enumerate(s) if val <= 0.95]
+#			res = [s[i: j] for i, j in zip([0] + idx_list, idx_list +([len(s)] if idx_list[-1] != len(s) else []))]			
+#			lis=[[i, len(val)] for i,val in enumerate(res) if len(val) > 100]
+#			seq=[[j[0],j[0]+j[1],con_seq[j[1]:j[0]+j[1]]] for j in lis]
+#			fil='\n'.join(','.join([str(elem) for elem in x]) for x in seq)
+#			fil2=re.sub('(,[^,]*),', r'\1\n', fil).replace(',', '-')
+#			fil3=re.sub(r'([0-9]+-[0-9]+)', r'>\1', fil2)
+#			stretch.write(fil3)
+
+# TESTING ON A SINGLE TIMEFRAME FILE
+zuc=[]
+for index, line in enumerate(seq_lines): #seq_lines are the aligned sequnces seperated into tim-frames
+	if (line.startswith('>')):
+		header=seq_lines[index]
+		nuc=seq_lines[index+1]
+		zuc.append(nuc)
+
+stretch=open(sys.argv[1]+'_stretches', 'w')
+for index2, line2 in enumerate(con_lines): #consensus_seqs file (not fragmented file)
+	if (line2.startswith('2103_2106')) :
+		header2=con_lines[index2]
+		con_seq=con_lines[index2+1]
+		d=[i[1].count(i[0]) for i in zip(con_seq, zip(*zuc))]
+		b=[len(i[1]) for i in zip(con_seq, zip(*zuc))]
+		s=[d[i]/b[i] for i in range(0,len(d))]
+#		dex=[i for i,v in enumerate(s) if v > 0.95]
+		idx_list = [idx + 1 for idx, val in enumerate(s) if val <= 0.95]
+		res = [s[i: j] for i, j in zip([0] + idx_list, idx_list +([len(s)] if idx_list[-1] != len(s) else []))]
+		lis=[[i, len(val)] for i,val in enumerate(res) if len(val) > 100]
+		starts=[[lis[j][0]+lis[j-1][1]] if j==1 else [lis[j][0]] for j in range(0,2)]
+		starts.extend([(lis[j][0]-lis[j-1][0])+starts[j-1][0]+lis[j-1][1]] for j in range(2,len(lis)))
+		seq=[[starts[j][0], (starts[j][0]+lis[j][1]),  con_seq[starts[j][0]:starts[j][0]+lis[j][1]]] for j in range(len(starts))]
+
+#		idx=[[(lis[j][0]-lis[j-1][0])+(lis[j-1][0]+lis[j-1][1]), (lis[j][0]+lis[j][1])] if j >=1 else [lis[j][0], (lis[j][1]+lis[j][0])] for j in range(0,len(lis))]
+
+		fil='\n'.join(','.join([str(elem) for elem in x]) for x in seq)
+		fil2=re.sub('(,[^,]*),', r'\1\n', fil).replace(',', '-')
+		fil3=re.sub(r'([0-9]+-[0-9]+)', r'>\1', fil2)
+		print(fil3)
+#		stretch.write(fil3)
+			
+#TESTING
+
+#FBP='ATGA'
+string=['ATGC',  'ATCG','CTGA']
+
+#WORKS
+#dict=[i[1].count(i[0]) for i in zip(FBP,zip(*string)) ]
+#print(dict)
+
+
